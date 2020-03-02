@@ -1,0 +1,376 @@
+require 'raylib'
+require 'math'
+require 'string'
+
+-- constants
+local SCREEN_WIDTH <comptime> = 600
+local SCREEN_HEIGH <comptime> = 800
+local TILEMAP_WIDTH <comptime> = 512
+local TILE_SPACING <comptime> = 12
+local TILE_COUNT <comptime> = 4
+local TILE_WIDTH <comptime> = (TILEMAP_WIDTH - (TILE_COUNT+1)*TILE_SPACING) // TILE_COUNT
+local TILEMAP_OFFSET: Vector2 = {
+  (SCREEN_WIDTH - TILEMAP_WIDTH) // 2,
+  SCREEN_HEIGH - TILEMAP_WIDTH - (SCREEN_WIDTH - TILEMAP_WIDTH) // 2
+}
+local BACKGROUND_COLOR: Color = Raylib.GetColor(0xFAF8EFFF)
+local TILEMAP_COLOR: Color = Raylib.GetColor(0xBBADA0FF)
+local EMPTY_TILE_COLOR: Color = Raylib.GetColor(0xCDC1B4FF)
+local TILE_COLOR: Color = Raylib.GetColor(0xEEE4DAFF)
+local TILE_TEXT_COLOR: Color = Raylib.GetColor(0x776E65FF)
+local TILE_FONT_SIZE <comptime> = 40
+local FONT_SPACING <comptime> = 2
+local TRANSITION_DURATION <comptime> = 0.1
+local SCORE_TEXT_DURATION <comptime> = 2
+local TILE_COLORS: uinteger[10] = {
+  0xEEE4DAFF, -- 2
+  0xEDE0C8FF, -- 4
+  0xF59563FF, -- 16
+  0xF67C5FFF, -- 32
+  0xF65E3BFF, -- 64
+  0xEDCF72FF, -- 128
+  0xEDCC61FF, -- 256
+  0xEDC850FF, -- 512
+  0xDDB513FF, -- 1024
+  0xEDC22EFF -- 2048
+}
+local TILE_TEXT_COLORS: uinteger[10] = {
+  0x776E65FF, -- 2
+  0x776E65FF, -- 4
+  0xFFFFFFFF, -- 16
+  0xFFFFFFFF, -- 32
+  0xFFFFFFFF, -- 64
+  0xFFFFFFFF, -- 128
+  0xFFFFFFFF, -- 256
+  0xFFFFFFFF, -- 512
+  0xFFFFFFFF, -- 1024
+  0xFFFFFFFF -- 2048
+}
+
+-- types
+local Direction = @enum {
+  NONE = 0,
+  UP = 1,
+  RIGHT = 2,
+  DOWN = 3,
+  LEFT = 4
+}
+local GameState = @enum{
+  IDLE=0,
+  SPAWNING,
+  SLIDING,
+  GAME_OVER
+}
+local TileAnim = @record {
+  n: integer,
+  movepos: Vector2,
+  move: boolean,
+  raise: boolean
+}
+local Timer = @record {
+  started: number
+}
+local TileMap = @integer[4][4]
+local AnimTileMap = @TileAnim[4][4]
+
+-- variables
+local tiles: TileMap
+local animtiles: AnimTileMap
+local stateend = 0
+local score: integer
+local gamestate: GameState = GameState.IDLE
+local newbuttonrect: Rectangle = {SCREEN_WIDTH - 128 - 44, 48 + 128, 128, 48}
+local notifytext: record{text:string, timer:Timer}
+
+function Timer:elapsed()
+  return Raylib.GetTime() - self.started
+end
+
+function Timer:restart()
+  self.started = Raylib.GetTime()
+end
+
+function Timer.create()
+  local self: Timer
+  self:restart()
+  return self
+end
+
+local function set_game_state(state: GameState)
+  gamestate = state
+  stateend = Raylib.GetTime() + TRANSITION_DURATION
+end
+
+local function spawn_tile()
+  local i: integer, j: integer
+  repeat
+    local r = math.random(0, TILE_COUNT*TILE_COUNT-1)
+    i = r // TILE_COUNT
+    j = r % TILE_COUNT
+  until tiles[i][j] == 0
+  tiles[i][j] = 1
+
+  if gamestate ~= GameState.SPAWNING then
+    animtiles = (@AnimTileMap){}
+    set_game_state(GameState.SPAWNING)
+  end
+  animtiles[i][j] = {n=1, raise=true}
+end
+
+local function reset_game()
+  tiles = (@TileMap)()
+  animtiles = (@AnimTileMap)()
+  score = 0
+  notifytext = {}
+  set_game_state(GameState.IDLE)
+  spawn_tile()
+  spawn_tile()
+end
+
+local function slide_tiles(dir: Direction)
+  animtiles = (@AnimTileMap){}
+  local slidden = false
+  local addscore = 0
+
+  if dir == Direction.UP or dir == Direction.DOWN then
+    local dstart = dir == Direction.UP and 0 or TILE_COUNT-1
+    local dend = dir == Direction.UP and TILE_COUNT-1 or 0
+    local dstep = dir == Direction.UP and 1 or -1
+    for x=0,TILE_COUNT-1 do
+      local ly = dir == Direction.UP and -1 or TILE_COUNT
+      local ln = 0
+      for y=dstart,dend,dstep do
+        local n = tiles[x][y]
+        animtiles[x][y] = {n=n, move=true, movepos={x, y}}
+        if n > 0 then
+          local nn = n
+          if ln == n then
+            nn = n + 1
+            addscore = addscore + (1 << nn)
+            ln = 0
+          else
+            ln = n
+            ly = ly + dstep
+          end
+          if y ~= ly then
+            animtiles[x][y] = {n=n, move=true, movepos={x, ly}}
+            tiles[x][y] = 0
+            tiles[x][ly] = nn
+            slidden = true
+          end
+        end
+      end
+    end
+  elseif dir == Direction.RIGHT or dir == Direction.LEFT then
+    local dstart = dir == Direction.LEFT and 0 or TILE_COUNT-1
+    local dend = dir == Direction.LEFT and TILE_COUNT-1 or 0
+    local dstep = dir == Direction.LEFT and 1 or -1
+    for y=0,TILE_COUNT-1 do
+      local lx = dir == Direction.LEFT and -1 or TILE_COUNT
+      local ln = 0
+      for x=dstart,dend,dstep do
+        local n = tiles[x][y]
+        animtiles[x][y] = {n=n, move=true, movepos={x, y}}
+        if n > 0 then
+          local nn = n
+          if ln == n then
+            nn = n + 1
+            score = score + (1 << nn)
+            ln = 0
+          else
+            ln = n
+            lx = lx + dstep
+          end
+          if x ~= lx then
+            animtiles[x][y] = {n=n, move=true, movepos={lx, y}}
+            tiles[x][y] = 0
+            tiles[lx][y] = nn
+            slidden = true
+          end
+        end
+      end
+    end
+  end
+
+  if addscore > 0 then
+    score = score + addscore
+    notifytext = {'+' .. tostring(addscore), Timer.create()}
+  end
+  if slidden then
+    set_game_state(GameState.SLIDING)
+  end
+end
+
+local function get_tile_rectangle(i: number, j: number): Rectangle
+  local x = TILEMAP_OFFSET.x + (i+1)*TILE_SPACING + i*TILE_WIDTH
+  local y = TILEMAP_OFFSET.y + (j+1)*TILE_SPACING + j*TILE_WIDTH
+  return (@Rectangle){x, y, TILE_WIDTH, TILE_WIDTH}
+end
+
+local function draw_boxed_text(text: string, rect: Rectangle, fontsize: integer,
+                               fgcolor: Color)
+  if #text == 0 then return end
+  local font = Raylib.GetFontDefault()
+  local spacing = math.ceil(fontsize / 20)
+  local size: Vector2 = Raylib.MeasureTextEx(font, text, fontsize, spacing)
+  local pos: Vector2 = {
+    rect.x + (rect.width - size.x) // 2,
+    rect.y + (rect.height - size.y) // 2
+  }
+  Raylib.DrawTextEx(font, text, pos, fontsize, spacing, fgcolor)
+end
+
+local function draw_tile(x: number, y: number, scale: number, num: integer)
+  if num == 0 then return end
+
+  -- draw tile background
+  local colorindex = (num-1) % 10
+  local tilerect = get_tile_rectangle(x, y)
+  local color = Raylib.GetColor(TILE_COLORS[colorindex])
+  local opacity = (@uint8)(math.min(scale, 1) * 255)
+  color.a = opacity
+  Raylib.DrawRectangle(tilerect.x, tilerect.y, tilerect.width, tilerect.height, color)
+
+  -- draw tile text
+  local textcolor = Raylib.GetColor(TILE_TEXT_COLORS[colorindex])
+  textcolor.a = opacity
+  local snum = tostring(1 << num)
+  draw_boxed_text(snum, tilerect, TILE_FONT_SIZE, textcolor)
+end
+
+local function draw_animated_tiles(remaining: number)
+  local elapsed = math.max(TRANSITION_DURATION - remaining, 0)
+  local fact = elapsed / TRANSITION_DURATION
+  for x=0,TILE_COUNT-1 do
+    for y=0,TILE_COUNT-1 do
+      local animtile = &animtiles[x][y]
+      local pos: Vector2 = {x, y}
+      local num: integer = tiles[x][y]
+      local scale: number = 1
+      if animtile.move then
+        pos = animtile.movepos * fact + pos*(1-fact)
+        num = animtile.n
+      end
+      if animtile.raise then
+        scale = fact*fact
+        num = animtile.n
+      end
+      draw_tile(pos.x, pos.y, scale, num)
+    end
+  end
+end
+
+local function draw_static_tiles()
+  for x=0,TILE_COUNT-1 do
+    for y=0,TILE_COUNT-1 do
+      local num: integer = tiles[x][y]
+      draw_tile(x, y, 1, num)
+    end
+  end
+end
+
+local function draw_tiles()
+  -- draw background
+  Raylib.DrawRectangle(TILEMAP_OFFSET.x, TILEMAP_OFFSET.y, TILEMAP_WIDTH, TILEMAP_WIDTH, TILEMAP_COLOR)
+
+  -- draw tiles grid
+  for i=0,<TILE_COUNT do
+    for j=0,<TILE_COUNT do
+      local tilerect = get_tile_rectangle(i, j)
+      Raylib.DrawRectangle(tilerect.x, tilerect.y, tilerect.width, tilerect.height, EMPTY_TILE_COLOR)
+    end
+  end
+
+  local animremaining = stateend - Raylib.GetTime()
+  if animremaining > 0 then
+    draw_animated_tiles(animremaining)
+  else
+    draw_static_tiles()
+  end
+end
+
+local function draw_score()
+  draw_boxed_text('2048', {44, 44, 200, 128}, 80, TILE_TEXT_COLOR)
+
+  local scorerect: Rectangle = {SCREEN_WIDTH - 128 - 44, 48, 128, 96}
+  local scoretitlerect: Rectangle = {scorerect.x, scorerect.y + 8,
+                                     scorerect.width, 20}
+  Raylib.DrawRectangle(scorerect.x, scorerect.y, scorerect.width, scorerect.height, TILEMAP_COLOR)
+  draw_boxed_text('Score', scoretitlerect, 20, TILE_COLOR)
+  scorerect.y = scorerect.y + 8
+  draw_boxed_text(tostring(score), scorerect, 40, RaylibColors.Raywhite)
+
+  local BUTTON_COLOR = Raylib.GetColor(0x8F7A66FF)
+  Raylib.DrawRectangle(newbuttonrect.x, newbuttonrect.y, newbuttonrect.width, newbuttonrect.height, BUTTON_COLOR)
+  draw_boxed_text('New Game', newbuttonrect, 20, RaylibColors.Raywhite)
+
+  -- cleanup old score texts
+  if notifytext.timer:elapsed() < SCORE_TEXT_DURATION then
+    local fact = notifytext.timer:elapsed() / SCORE_TEXT_DURATION
+    local color = RaylibColors.Black
+    color.a = (@uint8)((1-fact*fact) * 255)
+
+    scorerect.x = SCREEN_WIDTH/2
+    scorerect.y = 128 - fact * 128
+    draw_boxed_text(notifytext.text, scorerect, 60, color)
+  end
+end
+
+local function draw()
+  Raylib.BeginDrawing()
+  Raylib.ClearBackground(BACKGROUND_COLOR)
+  draw_score()
+  draw_tiles()
+  Raylib.EndDrawing()
+end
+
+local function update()
+  if gamestate ~= GameState.SLIDING then
+    if Raylib.IsKeyPressed(KeyboardKey.UP) then
+      slide_tiles(Direction.UP)
+    elseif Raylib.IsKeyPressed(KeyboardKey.DOWN) then
+      slide_tiles(Direction.DOWN)
+    elseif Raylib.IsKeyPressed(KeyboardKey.LEFT) then
+      slide_tiles(Direction.LEFT)
+    elseif Raylib.IsKeyPressed(KeyboardKey.RIGHT) then
+      slide_tiles(Direction.RIGHT)
+    end
+  end
+
+  if Raylib.IsMouseButtonPressed(MouseButton.LEFT_BUTTON) and
+     Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), newbuttonrect) then
+    reset_game()
+  end
+
+  local statefinished = Raylib.GetTime() >= stateend
+  if statefinished then
+    switch gamestate
+    case GameState.SLIDING then
+      spawn_tile()
+    case GameState.SPAWNING then
+      animtiles = (@AnimTileMap){}
+      set_game_state(GameState.IDLE)
+    end
+  end
+end
+
+local function init()
+  Raylib.SetTargetFPS(60)
+  Raylib.InitWindow(SCREEN_WIDTH, SCREEN_HEIGH, "2048 Game")
+  reset_game()
+end
+
+local function run()
+  repeat
+    update()
+    draw()
+  until Raylib.WindowShouldClose()
+end
+
+local function terminate()
+  Raylib.CloseWindow()
+end
+
+init()
+run()
+terminate()

@@ -1,6 +1,6 @@
 # 2048 Game Clone in Nelua
 
-![Screenshot](https://i.gyazo.com/6dcf629641b710ad84e27f9fc195436f.png)
+![Screenshot](https://raw.githubusercontent.com/edubart/nelua-game2048/master/screenshot.gif)
 
 This an experimental clone of the [2048 game](https://play2048.co/) using
 [Nelua](https://github.com/edubart/nelua-lang) and

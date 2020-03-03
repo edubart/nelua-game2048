@@ -21,6 +21,9 @@ local Timer = @record { started: number, duration: number }
 function Timer:elapsed(): number
   return Raylib.GetTime() - self.started
 end
+function Timer:delay(delay: number)
+  self.started = self.started + delay
+end
 function Timer:progress(): number
   if self.duration == 0 then return 1.0 end
   return math.min(self:elapsed() / self.duration, 1.0)
@@ -35,9 +38,12 @@ end
 function Timer.create(duration: number): Timer
   return Timer{Raylib.GetTime(), duration}
 end
+function Timer.create_delayed(duration: number, delay: number): Timer
+  return Timer{Raylib.GetTime() + delay, duration}
+end
 
 -- TileAnim
-local TileAnimKind = @enum { NONE=0, MOVE, RAISE}
+local TileAnimKind = @enum { NONE=0, MOVE, RAISE, MERGE}
 local TileAnim = @record {
   kind: TileAnimKind,
   n: integer,
@@ -49,6 +55,9 @@ function TileAnim.createMove(n: integer, duration: number, movepos: Vector2): Ti
 end
 function TileAnim.createRaise(n: integer, duration: number): TileAnim
   return TileAnim{kind = TileAnimKind.RAISE, n=n, timer=Timer.create(duration)}
+end
+function TileAnim.createMerge(n: integer, duration: number, delay: number): TileAnim
+  return TileAnim{kind = TileAnimKind.MERGE, n=n, timer=Timer.create_delayed(duration, delay)}
 end
 
 -- Game variables
@@ -93,7 +102,6 @@ local function spawn_tile()
   if x == -1 then return end
   tiles[x][y] = 1
   if gamestate ~= GameState.SPAWNING then
-    clear_animations()
     set_game_state(GameState.SPAWNING, SPAWN_DURATION)
   end
   tileanims[x][y]:push(TileAnim.createRaise(1, SPAWN_DURATION))
@@ -112,6 +120,7 @@ end
 
 local function slide_tiles(keydir: integer)
   local SLIDE_DURATION <comptime> = 0.1
+  local MERGE_DURATION <comptime> = 0.2
   local slidden = false
   local addscore = 0
   clear_animations()
@@ -119,6 +128,7 @@ local function slide_tiles(keydir: integer)
   ## function macro_process_tile()
     local n = tiles[x][y]
     local movepos: Vector2 = {x, y}
+    tileanims[x][y]:push(TileAnim.createMove(n, SLIDE_DURATION, movepos))
     if n > 0 then
       local nn = n
       if ln == n then
@@ -131,13 +141,15 @@ local function slide_tiles(keydir: integer)
         ly = ly + lys
       end
       if y ~= ly or x ~= lx then
-        movepos = {lx, ly}
+        tileanims[x][y][0].movepos = {lx, ly}
         tiles[x][y] = 0
         tiles[lx][ly] = nn
+        if n ~= nn then
+          tileanims[lx][ly]:push(TileAnim.createMerge(nn, MERGE_DURATION, SLIDE_DURATION))
+        end
         slidden = true
       end
     end
-    tileanims[x][y]:push(TileAnim.createMove(n, SLIDE_DURATION, movepos))
   ## end
 
   if keydir == KeyboardKey.UP then
@@ -225,17 +237,36 @@ local TILE_COLORS: record{fg: Color, bg: Color}[10] = {
   {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xDDB513FF)}, -- 1024
   {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xEDC22EFF)}  -- 2048
 }
-local function draw_tile(x: number, y: number, scale: number, num: integer)
+
+local function scale_rect(rect: Rectangle, scale: number): Rectangle
+  local newrect: Rectangle
+  newrect.width = rect.width * scale
+  newrect.height = rect.height * scale
+  newrect.x = rect.x + (rect.width - newrect.width) / 2
+  newrect.y = rect.y + (rect.height - newrect.height) / 2
+  return newrect
+end
+
+local function draw_tile(x: number, y: number, num: integer, scale: number, opacity: number)
   if num == 0 then return end
   local color = TILE_COLORS[(num-1) % #TILE_COLORS]
-  local rect = get_tile_rect(x, y)
-  Raylib.DrawRectangleRec(rect, Raylib.Fade(color.bg, scale))
-  draw_boxed_text(tostring(1 << num), rect, 40, Raylib.Fade(color.fg, scale))
+  local rect = scale_rect(get_tile_rect(x, y), scale)
+  local fontsize = (@integer)(math.ceil(8*scale))*5
+  Raylib.DrawRectangleRec(rect, Raylib.Fade(color.bg, opacity))
+  draw_boxed_text(tostring(1 << num), rect, fontsize, Raylib.Fade(color.fg, opacity))
+end
+
+local function ease_in_back(x: number): number
+  return (1.70158+1)*x*x*x - 1.70158*x*x
+end
+local function ease_out_back(x: number): number
+  return 1-ease_in_back(1-x)
 end
 
 local function draw_tiles()
   for x=0,TILE_COUNT-1 do
     for y=0,TILE_COUNT-1 do
+      local opacity = 1
       local scale = 1
       local pos: Vector2 = {x, y}
       local num = tiles[x][y]
@@ -249,13 +280,15 @@ local function draw_tiles()
             if anim.kind == TileAnimKind.MOVE then
               pos = pos*(1-fact) + anim.movepos * fact
             elseif anim.kind == TileAnimKind.RAISE then
-              scale = fact*fact
+              opacity = fact*fact
+            elseif anim.kind == TileAnimKind.MERGE then
+              scale = ease_out_back(fact)
             end
             break
           end
         end
       end
-      draw_tile(pos.x, pos.y, scale, num)
+      draw_tile(pos.x, pos.y, num, scale, opacity)
     end
   end
 end

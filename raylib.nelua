@@ -12,19 +12,13 @@
 -- additional features, however only 'raymath', 'camera 'and 'gestures' are compiled
 -- by default with raylib)
 
-## linklib 'raylib'
-## linklib 'GL'
-## linklib 'glfw'
-## linklib 'openal'
-## linklib 'm'
-## linklib 'pthread'
-## linklib 'dl'
-## linklib 'X11'
-## linklib 'Xrandr'
-## linklib 'Xinerama'
-## linklib 'Xi'
-## linklib 'Xxf86vm'
-## linklib 'Xcursor'
+##[[
+if EMSCRIPTEN then
+   cflags '-I/home/bart/apps/raylib/src /home/bart/apps/raylib/build.web/src/libraylib.bc'
+else
+   linklib 'raylib'
+end
+]]
 
 ## cinclude '<raylib.h>'
 ## cinclude '<raymath.h>'

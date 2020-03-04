@@ -2,6 +2,8 @@
 
 ![Screenshot](https://raw.githubusercontent.com/edubart/nelua-game2048/master/screenshot.gif)
 
+Play in your browser at https://edubart.github.io/nelua-game2048/
+
 This an experimental clone of the [2048 game](https://play2048.co/) using
 [Nelua](https://github.com/edubart/nelua-lang) and
 [Raylib](https://www.raylib.com/). Made mainly for checking out raylib in practice.

@@ -1,3 +1,15 @@
+##[[
+EMSCRIPTEN = true
+if EMSCRIPTEN then
+  config.cc = 'emcc'
+  cflags '-ffast-math -fno-plt -flto --llvm-lto 1 --closure 1'
+  cflags "-DGRAPHICS_API_OPENGL_ES2 -Oz -s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1 -s TOTAL_MEMORY=16777216"
+  cinclude '<emscripten.h>'
+  primtypes.integer = primtypes.int32
+  primtypes.uinteger = primtypes.uint32
+end
+]]
+
 require 'raylib'
 require 'math'
 require 'string'
@@ -16,10 +28,12 @@ local TILE_COUNT <comptime> = 4
 local TILE_WIDTH <comptime> = (TILEMAP_WIDTH - (TILE_COUNT+1)*TILE_SPACING) // TILE_COUNT
 local NEWBUTTON_RECT: Rectangle = {SCREEN_WIDTH - 128 - 44, 48 + 128, 128, 48}
 
+local frametime = Raylib.GetTime()
+
 -- Timer
 local Timer = @record { started: number, duration: number }
 function Timer:elapsed(): number
-  return Raylib.GetTime() - self.started
+  return frametime - self.started
 end
 function Timer:delay(delay: number)
   self.started = self.started + delay
@@ -30,16 +44,16 @@ function Timer:progress(): number
 end
 function Timer:finished(): boolean
   if self.duration == 0 then return false end
-  return (Raylib.GetTime() - self.started) >= self.duration
+  return (frametime - self.started) >= self.duration
 end
 function Timer:restart()
-  self.started = Raylib.GetTime()
+  self.started = frametime
 end
 function Timer.create(duration: number): Timer
-  return Timer{Raylib.GetTime(), duration}
+  return Timer{frametime, duration}
 end
 function Timer.create_delayed(duration: number, delay: number): Timer
-  return Timer{Raylib.GetTime() + delay, duration}
+  return Timer{frametime + delay, duration}
 end
 
 -- TileAnim
@@ -352,6 +366,7 @@ local function check_newgame()
 end
 
 local function update()
+  frametime = Raylib.GetTime()
   check_slide()
   check_newgame()
 
@@ -366,7 +381,14 @@ local function update()
   end
 end
 
+local function frame() <codename 'frame'>
+  update()
+  draw()
+  gc:run()
+end
+
 local function init()
+  gc:pause()
   Raylib.SetTargetFPS(60)
   Raylib.InitWindow(SCREEN_WIDTH, SCREEN_HEIGH, "2048 Game")
   reset_game()
@@ -374,8 +396,11 @@ end
 
 local function run()
   repeat
-    update()
-    draw()
+    ## if EMSCRIPTEN then
+    ## cemit 'emscripten_set_main_loop(frame, 0, 1);'
+    ## else
+      frame()
+    ## end
   until Raylib.WindowShouldClose()
 end
 

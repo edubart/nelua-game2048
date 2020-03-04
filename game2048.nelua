@@ -1,5 +1,5 @@
 ##[[
-EMSCRIPTEN = true
+--EMSCRIPTEN = true
 if EMSCRIPTEN then
   config.cc = 'emcc'
   cflags '-ffast-math -fno-plt -flto --llvm-lto 1 --closure 1'
@@ -11,6 +11,7 @@ end
 ]]
 
 require 'raylib'
+require 'allocators.gc'
 require 'math'
 require 'string'
 require 'vector'
@@ -81,7 +82,7 @@ local AnimTileMap = @vector(TileAnim)[TILE_COUNT][TILE_COUNT]
 local tileanims: AnimTileMap
 local statetimer: Timer
 local score: integer
-local GameState = @enum{ IDLE=0, SPAWNING, SLIDING }
+local GameState = @enum{ IDLE=0, NEW, SPAWNING, SLIDING }
 local gamestate: GameState
 local notify: record{text:string, timer:Timer}
 
@@ -110,26 +111,23 @@ local function get_random_avaiable_tile(): (integer, integer)
   return availables[index].x, availables[index].y
 end
 
-local function spawn_tile()
-  local SPAWN_DURATION <comptime> = 0.1
+local function spawn_tile(duration: number)
   local x, y = get_random_avaiable_tile()
   if x == -1 then return end
   tiles[x][y] = 1
-  if gamestate ~= GameState.SPAWNING then
-    set_game_state(GameState.SPAWNING, SPAWN_DURATION)
-  end
-  tileanims[x][y]:push(TileAnim.createRaise(1, SPAWN_DURATION))
+  tileanims[x][y]:push(TileAnim.createRaise(1, duration))
 end
 
 local function reset_game()
+  local NEW_DURATION <comptime> = 0.1
   tiles = (@TileMap)()
   tileanims = (@AnimTileMap)()
   score = 0
   notify = {}
   statetimer = {}
-  gamestate = GameState.IDLE
-  spawn_tile()
-  spawn_tile()
+  spawn_tile(NEW_DURATION)
+  spawn_tile(NEW_DURATION)
+  set_game_state(GameState.NEW, NEW_DURATION)
 end
 
 local function slide_tiles(keydir: integer)
@@ -345,36 +343,37 @@ local function draw()
   Raylib.EndDrawing()
 end
 
-local function check_slide()
-  if gamestate == GameState.SLIDING then return end
-  if Raylib.IsKeyPressed(KeyboardKey.UP) then
+local function check_slide(gesture: cint)
+  if gamestate == GameState.SLIDING or gamestate == GameState.NEW then return end
+  if Raylib.IsKeyPressed(KeyboardKey.UP) or gesture == GestureType.SWIPE_UP then
     slide_tiles(KeyboardKey.UP)
-  elseif Raylib.IsKeyPressed(KeyboardKey.DOWN) then
+  elseif Raylib.IsKeyPressed(KeyboardKey.DOWN) or gesture == GestureType.SWIPE_DOWN then
     slide_tiles(KeyboardKey.DOWN)
-  elseif Raylib.IsKeyPressed(KeyboardKey.LEFT) then
+  elseif Raylib.IsKeyPressed(KeyboardKey.LEFT) or gesture == GestureType.SWIPE_LEFT then
     slide_tiles(KeyboardKey.LEFT)
-  elseif Raylib.IsKeyPressed(KeyboardKey.RIGHT) then
+  elseif Raylib.IsKeyPressed(KeyboardKey.RIGHT) or gesture == GestureType.SWIPE_RIGHT then
     slide_tiles(KeyboardKey.RIGHT)
   end
 end
 
-local function check_newgame()
-  if Raylib.IsMouseButtonPressed(MouseButton.LEFT_BUTTON) and
-     Raylib.CheckCollisionPointRec(Raylib.GetMousePosition(), NEWBUTTON_RECT) then
+local function check_newgame(gesture: cint)
+  if gesture == GestureType.TAP and
+     Raylib.CheckCollisionPointRec(Raylib.GetTouchPosition(0), NEWBUTTON_RECT) then
     reset_game()
   end
 end
 
 local function update()
-  frametime = Raylib.GetTime()
-  check_slide()
-  check_newgame()
+  local gesture = Raylib.GetGestureDetected()
+  check_slide(gesture)
+  check_newgame(gesture)
 
   if statetimer:finished() then
-    switch gamestate
-    case GameState.SLIDING then
-      spawn_tile()
-    case GameState.SPAWNING then
+    if gamestate == GameState.SLIDING then
+      local SPAWN_DURATION <comptime> = 0.1
+      spawn_tile(SPAWN_DURATION)
+      set_game_state(GameState.SPAWNING, SPAWN_DURATION)
+    elseif gamestate == GameState.SPAWNING or gamestate == GameState.NEW then
       clear_animations()
       set_game_state(GameState.IDLE, 0)
     end
@@ -382,6 +381,7 @@ local function update()
 end
 
 local function frame() <codename 'frame'>
+  frametime = Raylib.GetTime()
   update()
   draw()
   gc:run()
@@ -389,8 +389,12 @@ end
 
 local function init()
   gc:pause()
+  Raylib.SetGesturesEnabled(GestureType.SWIPE_UP | GestureType.SWIPE_DOWN |
+                            GestureType.SWIPE_LEFT | GestureType.SWIPE_RIGHT |
+                            GestureType.TAP)
   Raylib.SetTargetFPS(60)
   Raylib.InitWindow(SCREEN_WIDTH, SCREEN_HEIGH, "2048 Game")
+  frametime = Raylib.GetTime()
   reset_game()
 end
 

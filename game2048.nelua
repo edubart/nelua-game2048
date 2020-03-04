@@ -92,7 +92,11 @@ local function set_game_state(state: GameState, duration: number)
 end
 
 local function clear_animations()
-  tileanims = (@AnimTileMap){}
+  for x=0,TILE_COUNT-1 do
+    for y=0,TILE_COUNT-1 do
+      tileanims[x][y]:clear()
+    end
+  end
 end
 
 local function get_random_avaiable_tile(): (integer, integer)
@@ -392,7 +396,9 @@ local function init()
   Raylib.SetGesturesEnabled(GestureType.SWIPE_UP | GestureType.SWIPE_DOWN |
                             GestureType.SWIPE_LEFT | GestureType.SWIPE_RIGHT |
                             GestureType.TAP)
-  Raylib.SetTargetFPS(60)
+  ## if not EMSCRIPTEN then
+    Raylib.SetTargetFPS(60)
+  ## end
   Raylib.InitWindow(SCREEN_WIDTH, SCREEN_HEIGH, "2048 Game")
   frametime = Raylib.GetTime()
   reset_game()

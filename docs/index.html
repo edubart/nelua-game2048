@@ -77,11 +77,8 @@
       }
 
       #controls {
-        display: inline-block;
-        float: right;
-        vertical-align: top;
-        margin-top: 30px;
-        margin-right: 20px;
+        margin-bottom: 10px;
+        text-align: center;
       }
 
       #output {
@@ -100,6 +97,10 @@
         outline: none;
       }
 
+      .info {
+        font-size: 2em;
+      }
+
       .hidden {
         display: none !important;
       }
@@ -109,14 +110,13 @@
 
     <div class="spinner" id='spinner'></div>
     <div class="emscripten" id="status">Downloading...</div>
-
-<span id='controls' class="hidden">
-  <span><input type="checkbox" id="resize">Resize canvas</span>
-  <span><input type="checkbox" id="pointerLock" checked>Lock/hide mouse pointer &nbsp;&nbsp;&nbsp;</span>
+<div id='controls'>
+  <span class="hidden"><input type="checkbox" id="resize">Resize canvas</span>
+  <span class="hidden"><input type="checkbox" id="pointerLock" checked>Lock/hide mouse pointer &nbsp;&nbsp;&nbsp;</span>
   <span><input type="button" value="Fullscreen" onclick="Module.requestFullscreen(document.getElementById('pointerLock').checked, 
                                                                             document.getElementById('resize').checked)">
   </span>
-</span>
+</div>
 
     <div class="emscripten">
       <progress value="0" max="100" id="progress" hidden=1></progress>
@@ -126,6 +126,17 @@
       <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex=-1></canvas>
     </div>
     <textarea id="output" class="hidden" rows="8"></textarea>
+    <div align="center" class="info">
+      <p>
+        Developed in
+        <a href="https://nelua.io/">Nelua</a>
+        programming language using
+        <a href="https://www.raylib.com/">Raylib</a> game library.
+      </p>
+      <p>
+        Check out the game sources at <a href="https://github.com/edubart/nelua-game2048">GitHub repository</a>.
+      </p>
+    </div>
 
     <script type='text/javascript'>
       var statusElement = document.getElementById('status');

@@ -13,7 +13,7 @@
 -- by default with raylib)
 
 ##[[
-if EMSCRIPTEN then
+if PLATFORM_WEB then
    cflags '-I/home/bart/apps/raylib/src /home/bart/apps/raylib/build.web/src/libraylib.bc'
 else
    linklib 'raylib'

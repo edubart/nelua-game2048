@@ -1,15 +1,4 @@
-##[[
---EMSCRIPTEN = true
-if EMSCRIPTEN then
-  config.cc = 'emcc'
-  cflags '-ffast-math -fno-plt -flto --llvm-lto 1 --closure 1'
-  cflags "-DGRAPHICS_API_OPENGL_ES2 -Oz -s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1 -s TOTAL_MEMORY=16777216"
-  cinclude '<emscripten.h>'
-  primtypes.integer = primtypes.int32
-  primtypes.uinteger = primtypes.uint32
-end
-]]
-
+require 'config'
 require 'raylib'
 require 'allocators.gc'
 require 'math'
@@ -29,9 +18,8 @@ local TILE_COUNT <comptime> = 4
 local TILE_WIDTH <comptime> = (TILEMAP_WIDTH - (TILE_COUNT+1)*TILE_SPACING) // TILE_COUNT
 local NEWBUTTON_RECT: Rectangle = {SCREEN_WIDTH - 128 - 44, 48 + 128, 128, 48}
 
-local frametime = Raylib.GetTime()
-
 -- Timer
+local frametime = Raylib.GetTime()
 local Timer = @record { started: number, duration: number }
 function Timer:elapsed(): number
   return frametime - self.started
@@ -384,40 +372,46 @@ local function update()
   end
 end
 
-local function frame() <codename 'frame'>
+local function frame()
   frametime = Raylib.GetTime()
   update()
   draw()
-  gc:run()
+
+  ## if PLATFORM_WEB then
+    gc:run() -- safe to collect garbage here
+  ## end
 end
 
 local function init()
-  gc:pause()
+  ## if PLATFORM_WEB then
+    gc:pause() -- conservative GCs cannot run automatically with emscripten
+  ## else
+    Raylib.SetTargetFPS(60)
+  ## end
+
   Raylib.SetGesturesEnabled(GestureType.SWIPE_UP | GestureType.SWIPE_DOWN |
                             GestureType.SWIPE_LEFT | GestureType.SWIPE_RIGHT |
                             GestureType.TAP)
-  ## if not EMSCRIPTEN then
-    Raylib.SetTargetFPS(60)
-  ## end
   Raylib.InitWindow(SCREEN_WIDTH, SCREEN_HEIGH, "2048 Game")
   frametime = Raylib.GetTime()
   reset_game()
-end
-
-local function run()
-  repeat
-    ## if EMSCRIPTEN then
-    ## cemit 'emscripten_set_main_loop(frame, 0, 1);'
-    ## else
-      frame()
-    ## end
-  until Raylib.WindowShouldClose()
 end
 
 local function terminate()
   Raylib.CloseWindow()
 end
 
+-- Setup Window and Game
 init()
-run()
+
+-- Main game loop
+## if PLATFORM_WEB then
+  emscripten_set_main_loop(frame, 0, 1)
+## else
+  repeat
+    frame()
+  until Raylib.WindowShouldClose()
+## end
+
+-- Cleanup
 terminate()

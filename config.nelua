@@ -1,0 +1,16 @@
+##[[
+local compiler = require 'nelua.ccompiler'
+if compiler.get_cc_info().is_emscripten then
+  PLATFORM_WEB = true
+  primtypes.integer = primtypes.int32
+  primtypes.uinteger = primtypes.uint32
+  primtypes.number = primtypes.float32
+  cflags '-Oz -fno-plt -flto --llvm-lto 1 --closure 1'
+  cflags '-DGRAPHICS_API_OPENGL_ES2'
+  cflags '-s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1 -s TOTAL_MEMORY=16777216'
+end
+]]
+
+## if PLATFORM_WEB then
+global function emscripten_set_main_loop(func: function(), fps: cint, simulate_infinite_loop: cint) <cimport,cinclude'<emscripten.h>',nodecl> end
+## end

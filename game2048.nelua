@@ -221,25 +221,25 @@ end
 
 local function draw_tiles_grid()
   local bgrect: Rectangle = { TILEMAP_OFFSET.x, TILEMAP_OFFSET.y, TILEMAP_WIDTH, TILEMAP_WIDTH }
-  Raylib.DrawRectangleRec(bgrect, Raylib.GetColor(0xBBADA0FF))
+  Raylib.DrawRectangleRec(bgrect, Raylib.GetColor((@cint)(0xBBADA0FF)))
   for i=0,TILE_COUNT-1 do
     for j=0,TILE_COUNT-1 do
-      Raylib.DrawRectangleRec(get_tile_rect(i, j), Raylib.GetColor(0xCDC1B4FF))
+      Raylib.DrawRectangleRec(get_tile_rect(i, j), Raylib.GetColor((@cint)(0xCDC1B4FF)))
     end
   end
 end
 
 local TILE_COLORS: record{fg: Color, bg: Color}[10] = {
-  {fg=Raylib.GetColor(0x776E65FF), bg=Raylib.GetColor(0xEEE4DAFF)}, -- 2
-  {fg=Raylib.GetColor(0x776E65FF), bg=Raylib.GetColor(0xEDE0C8FF)}, -- 4
-  {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xF59563FF)}, -- 16
-  {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xF67C5FFF)}, -- 32
-  {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xF65E3BFF)}, -- 64
-  {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xEDCF72FF)}, -- 128
-  {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xEDCC61FF)}, -- 256
-  {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xEDC850FF)}, -- 512
-  {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xDDB513FF)}, -- 1024
-  {fg=Raylib.GetColor(0xFFFFFFFF), bg=Raylib.GetColor(0xEDC22EFF)}  -- 2048
+  {fg=Raylib.GetColor((@cint)(0x776E65FF)), bg=Raylib.GetColor((@cint)(0xEEE4DAFF))}, -- 2
+  {fg=Raylib.GetColor((@cint)(0x776E65FF)), bg=Raylib.GetColor((@cint)(0xEDE0C8FF))}, -- 4
+  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xF59563FF))}, -- 16
+  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xF67C5FFF))}, -- 32
+  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xF65E3BFF))}, -- 64
+  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xEDCF72FF))}, -- 128
+  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xEDCC61FF))}, -- 256
+  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xEDC850FF))}, -- 512
+  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xDDB513FF))}, -- 1024
+  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xEDC22EFF))}  -- 2048
 }
 
 local function scale_rect(rect: Rectangle, scale: number): Rectangle
@@ -298,20 +298,20 @@ local function draw_tiles()
 end
 
 local function draw_title()
-  draw_boxed_text('2048', {44, 44, 200, 128}, 80, Raylib.GetColor(0x776E65FF))
+  draw_boxed_text('2048', {44, 44, 200, 128}, 80, Raylib.GetColor((@cint)(0x776E65FF)))
 end
 
 local function draw_score()
   local rect: Rectangle = {SCREEN_WIDTH - 128 - 44, 48, 128, 96}
   local titlerect: Rectangle = {rect.x, rect.y + 8, rect.width, 20}
   local textrect: Rectangle = {rect.x, rect.y + 8, rect.width, rect.height}
-  Raylib.DrawRectangleRec(rect, Raylib.GetColor(0xBBADA0FF))
-  draw_boxed_text('Score', titlerect, 20, Raylib.GetColor(0xEEE4DAFF))
+  Raylib.DrawRectangleRec(rect, Raylib.GetColor((@cint)(0xBBADA0FF)))
+  draw_boxed_text('Score', titlerect, 20, Raylib.GetColor((@cint)(0xEEE4DAFF)))
   draw_boxed_text(tostring(score), textrect, 40, RaylibColors.Raywhite)
 end
 
 local function draw_buttons()
-  Raylib.DrawRectangleRec(NEWBUTTON_RECT, Raylib.GetColor(0x8F7A66FF))
+  Raylib.DrawRectangleRec(NEWBUTTON_RECT, Raylib.GetColor((@cint)(0x8F7A66FF)))
   draw_boxed_text('New Game', NEWBUTTON_RECT, 20, RaylibColors.Raywhite)
 end
 
@@ -325,7 +325,7 @@ end
 
 local function draw()
   Raylib.BeginDrawing()
-  Raylib.ClearBackground(Raylib.GetColor(0xFAF8EFFF))
+  Raylib.ClearBackground(Raylib.GetColor((@cint)(0xFAF8EFFF)))
   draw_tiles_grid()
   draw_tiles()
   draw_title()

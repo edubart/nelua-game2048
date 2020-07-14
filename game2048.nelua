@@ -156,7 +156,7 @@ local function slide_tiles(keydir: integer)
     end
   ## end
 
-  if keydir == KeyboardKey.UP then
+  if keydir == KeyboardKey.KEY_UP then
     local lxs, lys = 0, 1
     for x=0,TILE_COUNT-1,1 do
       local lx, ly, ln = x, -1, 0
@@ -164,7 +164,7 @@ local function slide_tiles(keydir: integer)
         ## macro_process_tile()
       end
     end
-  elseif keydir == KeyboardKey.DOWN then
+  elseif keydir == KeyboardKey.KEY_DOWN then
     local lxs, lys = 0, -1
     for x=0,TILE_COUNT-1 do
       local lx, ly, ln = x, TILE_COUNT, 0
@@ -172,7 +172,7 @@ local function slide_tiles(keydir: integer)
         ## macro_process_tile()
       end
     end
-  elseif keydir == KeyboardKey.LEFT then
+  elseif keydir == KeyboardKey.KEY_LEFT then
     local lxs, lys = 1, 0
     for y=0,TILE_COUNT-1 do
       local lx, ly, ln = -1, y, 0
@@ -180,7 +180,7 @@ local function slide_tiles(keydir: integer)
         ## macro_process_tile()
       end
     end
-  elseif keydir == KeyboardKey.RIGHT then
+  elseif keydir == KeyboardKey.KEY_RIGHT then
     local lxs, lys = -1, 0
     for y=0,TILE_COUNT-1 do
       local lx, ly, ln = TILE_COUNT, y, 0
@@ -307,12 +307,12 @@ local function draw_score()
   local textrect: Rectangle = {rect.x, rect.y + 8, rect.width, rect.height}
   Raylib.DrawRectangleRec(rect, Raylib.GetColor((@cint)(0xBBADA0FF)))
   draw_boxed_text('Score', titlerect, 20, Raylib.GetColor((@cint)(0xEEE4DAFF)))
-  draw_boxed_text(tostring(score), textrect, 40, RaylibColors.Raywhite)
+  draw_boxed_text(tostring(score), textrect, 40, RAYWHITE)
 end
 
 local function draw_buttons()
   Raylib.DrawRectangleRec(NEWBUTTON_RECT, Raylib.GetColor((@cint)(0x8F7A66FF)))
-  draw_boxed_text('New Game', NEWBUTTON_RECT, 20, RaylibColors.Raywhite)
+  draw_boxed_text('New Game', NEWBUTTON_RECT, 20, RAYWHITE)
 end
 
 local function draw_notifications()
@@ -320,7 +320,7 @@ local function draw_notifications()
   local f = notify.timer:progress()
   local opacity = 1 - f*f
   local rect: Rectangle = {SCREEN_WIDTH//2, 128 - f * 128, 128, 96}
-  draw_boxed_text(notify.text, rect, 60, Raylib.Fade(RaylibColors.Black, opacity))
+  draw_boxed_text(notify.text, rect, 60, Raylib.Fade(BLACK, opacity))
 end
 
 local function draw()
@@ -337,19 +337,19 @@ end
 
 local function check_slide(gesture: cint)
   if gamestate == GameState.SLIDING or gamestate == GameState.NEW then return end
-  if Raylib.IsKeyPressed(KeyboardKey.UP) or gesture == GestureType.SWIPE_UP then
-    slide_tiles(KeyboardKey.UP)
-  elseif Raylib.IsKeyPressed(KeyboardKey.DOWN) or gesture == GestureType.SWIPE_DOWN then
-    slide_tiles(KeyboardKey.DOWN)
-  elseif Raylib.IsKeyPressed(KeyboardKey.LEFT) or gesture == GestureType.SWIPE_LEFT then
-    slide_tiles(KeyboardKey.LEFT)
-  elseif Raylib.IsKeyPressed(KeyboardKey.RIGHT) or gesture == GestureType.SWIPE_RIGHT then
-    slide_tiles(KeyboardKey.RIGHT)
+  if Raylib.IsKeyPressed(KeyboardKey.KEY_UP) or gesture == GestureType.GESTURE_SWIPE_UP then
+    slide_tiles(KeyboardKey.KEY_UP)
+  elseif Raylib.IsKeyPressed(KeyboardKey.KEY_DOWN) or gesture == GestureType.GESTURE_SWIPE_DOWN then
+    slide_tiles(KeyboardKey.KEY_DOWN)
+  elseif Raylib.IsKeyPressed(KeyboardKey.KEY_LEFT) or gesture == GestureType.GESTURE_SWIPE_LEFT then
+    slide_tiles(KeyboardKey.KEY_LEFT)
+  elseif Raylib.IsKeyPressed(KeyboardKey.KEY_RIGHT) or gesture == GestureType.GESTURE_SWIPE_RIGHT then
+    slide_tiles(KeyboardKey.KEY_RIGHT)
   end
 end
 
 local function check_newgame(gesture: cint)
-  if gesture == GestureType.TAP and
+  if gesture == GestureType.GESTURE_TAP and
      Raylib.CheckCollisionPointRec(Raylib.GetTouchPosition(0), NEWBUTTON_RECT) then
     reset_game()
   end
@@ -389,9 +389,9 @@ local function init()
     Raylib.SetTargetFPS(60)
   ## end
 
-  Raylib.SetGesturesEnabled(GestureType.SWIPE_UP | GestureType.SWIPE_DOWN |
-                            GestureType.SWIPE_LEFT | GestureType.SWIPE_RIGHT |
-                            GestureType.TAP)
+  Raylib.SetGesturesEnabled(GestureType.GESTURE_SWIPE_UP | GestureType.GESTURE_SWIPE_DOWN |
+                            GestureType.GESTURE_SWIPE_LEFT | GestureType.GESTURE_SWIPE_RIGHT |
+                            GestureType.GESTURE_TAP)
   Raylib.InitWindow(SCREEN_WIDTH, SCREEN_HEIGH, "2048 Game")
   frametime = Raylib.GetTime()
   reset_game()

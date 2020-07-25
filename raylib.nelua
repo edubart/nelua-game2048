@@ -1,5 +1,5 @@
 -- links:
-## linklib 'raylib'
+-- ## linklib 'raylib'
 
 -- includes:
 ## cinclude '<raylib.h>'

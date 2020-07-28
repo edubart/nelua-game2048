@@ -1,6 +1,5 @@
 require 'config'
 require 'raylib'
-require 'allocators.gc'
 require 'math'
 require 'string'
 require 'vector'
@@ -110,12 +109,25 @@ local function spawn_tile(duration: number)
   tileanims[x][y]:push(TileAnim.createRaise(1, duration))
 end
 
+local function destroy_animations()
+  for x=0,TILE_COUNT-1 do
+    for y=0,TILE_COUNT-1 do
+      tileanims[x][y]:destroy()
+    end
+  end
+end
+
+local function destroy_notify()
+  notify.text:destroy()
+  notify = {}
+end
+
 local function reset_game()
   local NEW_DURATION <comptime> = 0.1
   tiles = (@TileMap)()
-  tileanims = (@AnimTileMap)()
+  destroy_animations()
+  destroy_notify()
   score = 0
-  notify = {}
   statetimer = {}
   spawn_tile(NEW_DURATION)
   spawn_tile(NEW_DURATION)
@@ -198,7 +210,8 @@ local function slide_tiles(keydir: integer)
 
   if addscore > 0 then
     score = score + addscore
-    notify = {'+' .. tostring(addscore), Timer.create(1.0)}
+    destroy_notify()
+    notify = {string.format('+%d', addscore), Timer.create(1.0)}
   end
 end
 
@@ -209,7 +222,7 @@ local function get_tile_rect(x: number, y: number): Rectangle
     TILE_WIDTH, TILE_WIDTH}
 end
 
-local function draw_boxed_text(text: string, rect: Rectangle, fontsize: integer, fgcolor: Color)
+local function draw_boxed_text(text: stringview, rect: Rectangle, fontsize: integer, fgcolor: Color)
   if #text == 0 then return end
   local font = Raylib.GetFontDefault()
   local spacing = math.ceil(fontsize / 20)
@@ -257,7 +270,9 @@ local function draw_tile(x: number, y: number, num: integer, scale: number, opac
   local rect = scale_rect(get_tile_rect(x, y), scale)
   local fontsize = (@integer)(math.ceil(8*scale))*5
   Raylib.DrawRectangleRec(rect, Raylib.Fade(color.bg, opacity))
-  draw_boxed_text(tostring(1 << num), rect, fontsize, Raylib.Fade(color.fg, opacity))
+  local tiletext = tostring(1 << num)
+  draw_boxed_text(tiletext, rect, fontsize, Raylib.Fade(color.fg, opacity))
+  tiletext:destroy()
 end
 
 local function ease_in_back(x: number): number
@@ -307,7 +322,9 @@ local function draw_score()
   local textrect: Rectangle = {rect.x, rect.y + 8, rect.width, rect.height}
   Raylib.DrawRectangleRec(rect, Raylib.GetColor((@cint)(0xBBADA0FF)))
   draw_boxed_text('Score', titlerect, 20, Raylib.GetColor((@cint)(0xEEE4DAFF)))
-  draw_boxed_text(tostring(score), textrect, 40, RAYWHITE)
+  local scoretext = tostring(score)
+  draw_boxed_text(scoretext, textrect, 40, RAYWHITE)
+  scoretext:destroy()
 end
 
 local function draw_buttons()
@@ -377,15 +394,18 @@ local function frame()
   update()
   draw()
 
-  ## if PLATFORM_WEB then
+  ## if PLATFORM_WEB and not pragmas.nogc then
     gc:run() -- safe to collect garbage here
   ## end
 end
 
 local function init()
-  ## if PLATFORM_WEB then
+  ## if PLATFORM_WEB and not pragmas.nogc then
     gc:pause() -- conservative GCs cannot run automatically with emscripten
-  ## else
+  ## end
+
+  -- SetTargetFPS is not allowed on web
+  ## if not PLATFORM_WEB then
     Raylib.SetTargetFPS(60)
   ## end
 
@@ -398,6 +418,8 @@ local function init()
 end
 
 local function terminate()
+  destroy_animations()
+  destroy_notify()
   Raylib.CloseWindow()
 end
 
@@ -406,6 +428,7 @@ init()
 
 -- Main game loop
 ## if PLATFORM_WEB then
+  local function emscripten_set_main_loop(func: function(), fps: cint, infloop: cint) <cimport,cinclude'<emscripten.h>',nodecl> end
   emscripten_set_main_loop(frame, 0, 1)
 ## else
   repeat

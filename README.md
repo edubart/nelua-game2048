@@ -13,7 +13,6 @@ thanks to @Andre-LA.
 
 ## Running
 
-You must have both Nelua and latest Raylib installed and working. At the moment
-only Linux system is supported.
+You must have both Nelua and latest Raylib installed and working.
 
-To run simple do `nelua -r game2048.nelua`
+To run simple do `nelua game2048.nelua`

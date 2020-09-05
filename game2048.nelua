@@ -63,9 +63,9 @@ function TileAnim.createMerge(n: integer, duration: number, delay: number): Tile
 end
 
 -- Game variables
-local TileMap = @integer[TILE_COUNT][TILE_COUNT]
+local TileMap = @[TILE_COUNT][TILE_COUNT]integer
 local tiles: TileMap
-local AnimTileMap = @vector(TileAnim)[TILE_COUNT][TILE_COUNT]
+local AnimTileMap = @[TILE_COUNT][TILE_COUNT]vector(TileAnim)
 local tileanims: AnimTileMap
 local statetimer: Timer
 local score: integer
@@ -87,7 +87,7 @@ local function clear_animations()
 end
 
 local function get_random_avaiable_tile(): (integer, integer)
-  local availables: record{x: integer, y: integer}[(TILE_COUNT*TILE_COUNT)]
+  local availables: [(TILE_COUNT*TILE_COUNT)]record{x: integer, y: integer}
   local index = 0
   for x=0,TILE_COUNT-1 do
     for y=0,TILE_COUNT-1 do
@@ -242,7 +242,7 @@ local function draw_tiles_grid()
   end
 end
 
-local TILE_COLORS: record{fg: Color, bg: Color}[10] = {
+local TILE_COLORS: [10]record{fg: Color, bg: Color} = {
   {fg=Raylib.GetColor((@cint)(0x776E65FF)), bg=Raylib.GetColor((@cint)(0xEEE4DAFF))}, -- 2
   {fg=Raylib.GetColor((@cint)(0x776E65FF)), bg=Raylib.GetColor((@cint)(0xEDE0C8FF))}, -- 4
   {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xF59563FF))}, -- 16

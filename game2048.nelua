@@ -18,7 +18,7 @@ local TILE_WIDTH <comptime> = (TILEMAP_WIDTH - (TILE_COUNT+1)*TILE_SPACING) // T
 local NEWBUTTON_RECT: Rectangle = {SCREEN_WIDTH - 128 - 44, 48 + 128, 128, 48}
 
 -- Timer
-local frametime = Raylib.GetTime()
+local frametime = GetTime()
 local Timer = @record { started: number, duration: number }
 function Timer:elapsed(): number
   return frametime - self.started
@@ -224,35 +224,35 @@ end
 
 local function draw_boxed_text(text: string, rect: Rectangle, fontsize: integer, fgcolor: Color)
   if #text == 0 then return end
-  local font = Raylib.GetFontDefault()
+  local font = GetFontDefault()
   local spacing = math.ceil(fontsize / 20)
-  local textsize = Raylib.MeasureTextEx(font, text, fontsize, spacing)
+  local textsize = MeasureTextEx(font, text, fontsize, spacing)
   local pos: Vector2 = { rect.x + (rect.width - textsize.x) // 2,
                          rect.y + (rect.height - textsize.y) // 2 }
-  Raylib.DrawTextEx(font, text, pos, fontsize, spacing, fgcolor)
+  DrawTextEx(font, text, pos, fontsize, spacing, fgcolor)
 end
 
 local function draw_tiles_grid()
   local bgrect: Rectangle = { TILEMAP_OFFSET.x, TILEMAP_OFFSET.y, TILEMAP_WIDTH, TILEMAP_WIDTH }
-  Raylib.DrawRectangleRec(bgrect, Raylib.GetColor((@cint)(0xBBADA0FF)))
+  DrawRectangleRec(bgrect, GetColor(0xBBADA0FF))
   for i=0,TILE_COUNT-1 do
     for j=0,TILE_COUNT-1 do
-      Raylib.DrawRectangleRec(get_tile_rect(i, j), Raylib.GetColor((@cint)(0xCDC1B4FF)))
+      DrawRectangleRec(get_tile_rect(i, j), GetColor(0xCDC1B4FF))
     end
   end
 end
 
 local TILE_COLORS: [10]record{fg: Color, bg: Color} = {
-  {fg=Raylib.GetColor((@cint)(0x776E65FF)), bg=Raylib.GetColor((@cint)(0xEEE4DAFF))}, -- 2
-  {fg=Raylib.GetColor((@cint)(0x776E65FF)), bg=Raylib.GetColor((@cint)(0xEDE0C8FF))}, -- 4
-  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xF59563FF))}, -- 16
-  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xF67C5FFF))}, -- 32
-  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xF65E3BFF))}, -- 64
-  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xEDCF72FF))}, -- 128
-  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xEDCC61FF))}, -- 256
-  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xEDC850FF))}, -- 512
-  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xDDB513FF))}, -- 1024
-  {fg=Raylib.GetColor((@cint)(0xFFFFFFFF)), bg=Raylib.GetColor((@cint)(0xEDC22EFF))}  -- 2048
+  {fg=GetColor(0x776E65FF), bg=GetColor(0xEEE4DAFF)}, -- 2
+  {fg=GetColor(0x776E65FF), bg=GetColor(0xEDE0C8FF)}, -- 4
+  {fg=GetColor(0xFFFFFFFF), bg=GetColor(0xF59563FF)}, -- 16
+  {fg=GetColor(0xFFFFFFFF), bg=GetColor(0xF67C5FFF)}, -- 32
+  {fg=GetColor(0xFFFFFFFF), bg=GetColor(0xF65E3BFF)}, -- 64
+  {fg=GetColor(0xFFFFFFFF), bg=GetColor(0xEDCF72FF)}, -- 128
+  {fg=GetColor(0xFFFFFFFF), bg=GetColor(0xEDCC61FF)}, -- 256
+  {fg=GetColor(0xFFFFFFFF), bg=GetColor(0xEDC850FF)}, -- 512
+  {fg=GetColor(0xFFFFFFFF), bg=GetColor(0xDDB513FF)}, -- 1024
+  {fg=GetColor(0xFFFFFFFF), bg=GetColor(0xEDC22EFF)}  -- 2048
 }
 
 local function scale_rect(rect: Rectangle, scale: number): Rectangle
@@ -269,9 +269,9 @@ local function draw_tile(x: number, y: number, num: integer, scale: number, opac
   local color = TILE_COLORS[(num-1) % #TILE_COLORS]
   local rect = scale_rect(get_tile_rect(x, y), scale)
   local fontsize = (@integer)(math.ceil(8*scale))*5
-  Raylib.DrawRectangleRec(rect, Raylib.Fade(color.bg, opacity))
+  DrawRectangleRec(rect, Fade(color.bg, opacity))
   local tiletext = tostring(1 << num)
-  draw_boxed_text(tiletext, rect, fontsize, Raylib.Fade(color.fg, opacity))
+  draw_boxed_text(tiletext, rect, fontsize, Fade(color.fg, opacity))
   tiletext:destroy()
 end
 
@@ -313,22 +313,22 @@ local function draw_tiles()
 end
 
 local function draw_title()
-  draw_boxed_text('2048', {44, 44, 200, 128}, 80, Raylib.GetColor((@cint)(0x776E65FF)))
+  draw_boxed_text('2048', {44, 44, 200, 128}, 80, GetColor(0x776E65FF))
 end
 
 local function draw_score()
   local rect: Rectangle = {SCREEN_WIDTH - 128 - 44, 48, 128, 96}
   local titlerect: Rectangle = {rect.x, rect.y + 8, rect.width, 20}
   local textrect: Rectangle = {rect.x, rect.y + 8, rect.width, rect.height}
-  Raylib.DrawRectangleRec(rect, Raylib.GetColor((@cint)(0xBBADA0FF)))
-  draw_boxed_text('Score', titlerect, 20, Raylib.GetColor((@cint)(0xEEE4DAFF)))
+  DrawRectangleRec(rect, GetColor(0xBBADA0FF))
+  draw_boxed_text('Score', titlerect, 20, GetColor(0xEEE4DAFF))
   local scoretext = tostring(score)
   draw_boxed_text(scoretext, textrect, 40, RAYWHITE)
   scoretext:destroy()
 end
 
 local function draw_buttons()
-  Raylib.DrawRectangleRec(NEWBUTTON_RECT, Raylib.GetColor((@cint)(0x8F7A66FF)))
+  DrawRectangleRec(NEWBUTTON_RECT, GetColor(0x8F7A66FF))
   draw_boxed_text('New Game', NEWBUTTON_RECT, 20, RAYWHITE)
 end
 
@@ -337,43 +337,43 @@ local function draw_notifications()
   local f = notify.timer:progress()
   local opacity = 1 - f*f
   local rect: Rectangle = {SCREEN_WIDTH//2, 128 - f * 128, 128, 96}
-  draw_boxed_text(notify.text, rect, 60, Raylib.Fade(BLACK, opacity))
+  draw_boxed_text(notify.text, rect, 60, Fade(BLACK, opacity))
 end
 
 local function draw()
-  Raylib.BeginDrawing()
-  Raylib.ClearBackground(Raylib.GetColor((@cint)(0xFAF8EFFF)))
+  BeginDrawing()
+  ClearBackground(GetColor(0xFAF8EFFF))
   draw_tiles_grid()
   draw_tiles()
   draw_title()
   draw_score()
   draw_buttons()
   draw_notifications()
-  Raylib.EndDrawing()
+  EndDrawing()
 end
 
 local function check_slide(gesture: cint)
   if gamestate == GameState.SLIDING or gamestate == GameState.NEW then return end
-  if Raylib.IsKeyPressed(KeyboardKey.KEY_UP) or gesture == GestureType.GESTURE_SWIPE_UP then
+  if IsKeyPressed(KeyboardKey.KEY_UP) or gesture == GESTURE_SWIPE_UP then
     slide_tiles(KeyboardKey.KEY_UP)
-  elseif Raylib.IsKeyPressed(KeyboardKey.KEY_DOWN) or gesture == GestureType.GESTURE_SWIPE_DOWN then
+  elseif IsKeyPressed(KeyboardKey.KEY_DOWN) or gesture == GESTURE_SWIPE_DOWN then
     slide_tiles(KeyboardKey.KEY_DOWN)
-  elseif Raylib.IsKeyPressed(KeyboardKey.KEY_LEFT) or gesture == GestureType.GESTURE_SWIPE_LEFT then
+  elseif IsKeyPressed(KeyboardKey.KEY_LEFT) or gesture == GESTURE_SWIPE_LEFT then
     slide_tiles(KeyboardKey.KEY_LEFT)
-  elseif Raylib.IsKeyPressed(KeyboardKey.KEY_RIGHT) or gesture == GestureType.GESTURE_SWIPE_RIGHT then
+  elseif IsKeyPressed(KeyboardKey.KEY_RIGHT) or gesture == GESTURE_SWIPE_RIGHT then
     slide_tiles(KeyboardKey.KEY_RIGHT)
   end
 end
 
 local function check_newgame(gesture: cint)
-  if gesture == GestureType.GESTURE_TAP and
-     Raylib.CheckCollisionPointRec(Raylib.GetTouchPosition(0), NEWBUTTON_RECT) then
+  if gesture == GESTURE_TAP and
+     CheckCollisionPointRec(GetTouchPosition(0), NEWBUTTON_RECT) then
     reset_game()
   end
 end
 
 local function update()
-  local gesture = Raylib.GetGestureDetected()
+  local gesture = GetGestureDetected()
   check_slide(gesture)
   check_newgame(gesture)
 
@@ -390,7 +390,7 @@ local function update()
 end
 
 local function frame()
-  frametime = Raylib.GetTime()
+  frametime = GetTime()
   update()
   draw()
 
@@ -406,21 +406,21 @@ local function init()
 
   -- SetTargetFPS is not allowed on web
   ## if not PLATFORM_WEB then
-    Raylib.SetTargetFPS(60)
+    SetTargetFPS(60)
   ## end
 
-  Raylib.SetGesturesEnabled(GestureType.GESTURE_SWIPE_UP | GestureType.GESTURE_SWIPE_DOWN |
-                            GestureType.GESTURE_SWIPE_LEFT | GestureType.GESTURE_SWIPE_RIGHT |
-                            GestureType.GESTURE_TAP)
-  Raylib.InitWindow(SCREEN_WIDTH, SCREEN_HEIGH, "2048 Game")
-  frametime = Raylib.GetTime()
+  SetGesturesEnabled(GESTURE_SWIPE_UP | GESTURE_SWIPE_DOWN |
+                            GESTURE_SWIPE_LEFT | GESTURE_SWIPE_RIGHT |
+                            GESTURE_TAP)
+  InitWindow(SCREEN_WIDTH, SCREEN_HEIGH, "2048 Game")
+  frametime = GetTime()
   reset_game()
 end
 
 local function terminate()
   destroy_animations()
   destroy_notify()
-  Raylib.CloseWindow()
+  CloseWindow()
 end
 
 -- Setup Window and Game
@@ -433,7 +433,7 @@ init()
 ## else
   repeat
     frame()
-  until Raylib.WindowShouldClose()
+  until WindowShouldClose()
 ## end
 
 -- Cleanup
